@@ -1,4 +1,4 @@
-class exports.FacettedQueryBuilder extends Backbone.View
+class FacettedQueryBuilder extends Backbone.View
   
   $ = jQuery
 
@@ -15,15 +15,18 @@ class exports.FacettedQueryBuilder extends Backbone.View
   render: (target) ->
     @unLoad()
     @setElement(target)
-    @$el.html(@templates['main.eco']())
+    @$el.html(@templates['templates/main.eco'] {})
     $rt = @$('.resultstable')
     @widget = $rt.imWidget(@getArgs())
-    @startListeningTo widget.states
-    @updateFacets states
+    @startListeningTo @widget.states
     @trigger 'rendered', @
     @
 
-  getArgs: -> _.extend {error: @onError}, @config
+  unLoad: ->
+    @removeFacets()
+    @widget?.remove()
+
+  getArgs: -> _.extend {error: @onError, type: "table"}, @config
 
   startListeningTo: (states) -> @listenTo states, "add remove", @updateFacets.bind(@)
 
@@ -31,9 +34,10 @@ class exports.FacettedQueryBuilder extends Backbone.View
 
   facetPathsFor: (type) ->
     {flatten, map} = _
+    {facetPathsFor} = @config
     @widget.service.fetchModel().then (model) ->
       types = [type].concat model.getAncestorsOf type
-      flatten map types, (t) => @config.facetPathsFor[t]
+      flatten map types, (t) -> (facetPathsFor || {})[t] || []
 
   removeFacets: ->
     while facet = @facets.pop()
@@ -45,11 +49,12 @@ class exports.FacettedQueryBuilder extends Backbone.View
       for p in paths
         facet = new intermine.results.ColumnSummary(query, p)
         @facets.push(facet)
-        $facets.append facet
+        $facets.append facet.el
         facet.render()
 
-  updateFacets: (states) ->
-    query = states.currentQuery
+  updateFacets: ->
+    query = @widget.states.currentQuery
     @removeFacets()
     @addFacets query
 
+exports.App = FacettedQueryBuilder

@@ -4,6 +4,11 @@ class FacettedQueryBuilder extends Backbone.View
 
   initialize: (@config, @templates) ->
     @facets = []
+    @facetMediator = _.extend({}, Backbone.Events)
+    @facetMediator.on 'facet:toggled', (facet) =>
+      nowOpen = facet.state.get('open')
+      return unless nowOpen
+      f.close() for f in @facets when f isnt facet
 
   onError: (err) ->
     @trigger 'error', err
@@ -46,8 +51,9 @@ class FacettedQueryBuilder extends Backbone.View
   addFacets: (query) ->
     $facets = @$ '.facets'
     $.when(@facetPaths(query.root)).then (paths) =>
-      for p in paths
+      for p in paths then do (p) =>
         facet = new intermine.results.ColumnSummary(query, p)
+        facet.state.on 'change:open', => @facetMediator.trigger 'facet:toggled', facet
         @facets.push(facet)
         $facets.append facet.el
         facet.render()
@@ -56,5 +62,7 @@ class FacettedQueryBuilder extends Backbone.View
     query = @widget.states.currentQuery
     @removeFacets()
     @addFacets query
+    topFacet = @facets[0]
+    topFacet?.on 'ready', => topFacet.toggle()
 
 exports.App = FacettedQueryBuilder

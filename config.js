@@ -5,7 +5,7 @@ module.export = config = {
   "title": "Facetted Query Builder",
   "description": "Build a Query, using facets!",
   "version": "0.1.0",
-  "appRoot": "queryBuilder",
+  "appRoot": "src/queryBuilder",
   "dependencies": {
     "JSON": {
       "path": "http://cdn.intermine.org/js/json3/3.2.2/json3.min.js"
@@ -19,6 +19,14 @@ module.export = config = {
     "Backbone": {
       "path": "http://cdn.intermine.org/js/backbone.js/0.9.2/backbone-min.js",
       "depends": ["jQuery", "_"]
+    },
+    "imjs": {
+      "path": "http://cdn.intermine.org/js/intermine/imjs/2.6.2/im.js",
+      "depends": ["jQuery", "_"]
+    },
+    "imtables": {
+      "path": "http://cdn.intermine.org/js/intermine/im-tables/1.3.0/imtables-mini-bundle.js",
+      "depends": ["jQuery", "_", "imjs", "Backbone"]
     }
   },
   "config": {}

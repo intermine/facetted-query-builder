@@ -1,4 +1,4 @@
-var config, CDN = "http://cdn.intermine.org";
+var config, CDN = 'http://localhost/cdn'; //"http://cdn.intermine.org";
 
 module.exports = config = {
   "author": "Alex <alex@intermine.org>",

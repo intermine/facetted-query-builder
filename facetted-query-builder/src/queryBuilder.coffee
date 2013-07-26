@@ -2,13 +2,14 @@ class FacettedQueryBuilder extends Backbone.View
   
   $ = jQuery
 
-  initialize: (@config, @templates) ->
+  initialize: (@config = {}, @templates = {}) ->
     @facets = []
     @facetMediator = _.extend({}, Backbone.Events)
     @facetMediator.on 'facet:toggled', (facet) =>
       nowOpen = facet.state.get('open')
       return unless nowOpen
       f.close() for f in @facets when f isnt facet
+    @config.onReady?(@)
 
   onError: (err) ->
     @trigger 'error', err
@@ -17,9 +18,12 @@ class FacettedQueryBuilder extends Backbone.View
     else
       console.error err
 
+  sendMessage: (name, data) ->
+    @config.channel?({name, data, service: @getService()})
+
   render: (target) ->
     @unLoad()
-    @setElement(target)
+    @setElement(target) if target?
     @$el.html(@templates['templates/main.eco'] {})
     $rt = @$('.resultstable')
     @widget = $rt.imWidget(@getArgs())
@@ -31,9 +35,21 @@ class FacettedQueryBuilder extends Backbone.View
     @removeFacets()
     @widget?.remove()
 
-  getArgs: -> _.extend {error: @onError, type: "table"}, @config
+  getArgs: -> _.extend {error: @onError, type: "table", events: @getEventHandlers()}, @config
+ 
+  getEventHandlers: ->
+    'imo:click': (type, id) => @sendMessage('clicked:imo', {type, id})
+    'imo:selected': (type, id, isSelected) => @sendMessage('selected:imo', {type, id, isSelected})
+    'list-creation:success': (list) => @sendMessage('create:list', {list: list.name})
+    'list-creation:failure': (err) => @onError(err)
+    'list-update:success': (list, delta) => @sendMessage('update:list', {delta, list: list.name})
+    'list-update:failure': (err) => @onError(err)
 
-  startListeningTo: (states) -> @listenTo states, "add remove", @updateFacets.bind(@)
+  getService: ->
+    {root, token} = (@widget?.service or {})
+    return {root, token}
+
+  startListeningTo: (states) -> @listenTo states, "add reverted", @onQueryChange.bind(@)
 
   facetPaths: (type) -> @config.facetPaths or @facetPathsFor(type)
 
@@ -58,7 +74,12 @@ class FacettedQueryBuilder extends Backbone.View
         $facets.append facet.el
         facet.render()
 
+  onQueryChange: ->
+    @updateFacets()
+    @sendMessage 'change:query', @widget.states.currentQuery.toJSON()
+
   updateFacets: ->
+    console.log "Updating facets"
     query = @widget.states.currentQuery
     @removeFacets()
     @addFacets query
